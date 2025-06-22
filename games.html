@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Flawless Games</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #222;
+      color: #eee;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    header {
+      background: #333;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #f5a623 transparent;
+      box-shadow: 0 0 8px #f5a623;
+      user-select: none;
+    }
+    header::-webkit-scrollbar {
+      height: 8px;
+    }
+    header::-webkit-scrollbar-thumb {
+      background-color: #f5a623;
+      border-radius: 4px;
+    }
+
+    .tab {
+      background: #444;
+      color: #ddd;
+      padding: 8px 14px;
+      border-radius: 16px;
+      cursor: pointer;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      user-select: none;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      flex-shrink: 0;
+    }
+    .tab.active {
+      background: #f5a623;
+      color: #121212;
+      font-weight: 700;
+      box-shadow: 0 0 6px #f5a623;
+    }
+    .tab:hover:not(.active) {
+      background: #666;
+    }
+    .tab .close-btn {
+      background: transparent;
+      border: none;
+      color: inherit;
+      font-weight: 900;
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
+      user-select: none;
+      padding: 0;
+      margin: 0;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      opacity: 0.7;
+      transition: opacity 0.2s ease;
+    }
+    .tab .close-btn:hover {
+      opacity: 1;
+    }
+
+    #newTabBtn {
+      background: #f5a623;
+      color: #121212;
+      font-weight: 700;
+      border-radius: 16px;
+      padding: 8px 14px;
+      cursor: pointer;
+      user-select: none;
+      flex-shrink: 0;
+      border: none;
+      transition: background-color 0.3s ease;
+    }
+    #newTabBtn:hover {
+      background-color: #ffaa2c;
+    }
+    #newTabBtn:active {
+      background-color: #d18c0f;
+    }
+
+    main {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      background: #111;
+      border-radius: 0 0 12px 12px;
+      box-shadow: 0 0 15px #f5a623;
+      overflow: hidden;
+      position: relative;
+    }
+
+    iframe, #gamesContent {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #111;
+      color: #eee;
+      overflow: auto;
+    }
+
+    /* Games grid styles */
+    #gamesGrid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      padding: 20px;
+    }
+    .game {
+      background: #333;
+      border-radius: 8px;
+      width: 160px;
+      text-align: center;
+      padding: 12px;
+      box-shadow: 0 0 8px #f5a623;
+      cursor: pointer;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      user-select: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .game:hover, .game:focus {
+      background-color: #f5a623;
+      color: #121212;
+      outline: none;
+    }
+    .game img {
+      width: 140px;
+      height: 78px;
+      object-fit: cover;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      flex-shrink: 0;
+    }
+    .game-title {
+      font-weight: bold;
+      font-size: 1rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+    }
+
+    @media (max-width: 600px) {
+      .game {
+        width: 45%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header role="tablist" aria-label="Open Tabs" id="tabsContainer">
+    <!-- Tabs will be injected here -->
+    <button id="newTabBtn" aria-label="Open new tab with games page">+ New Tab</button>
+  </header>
+
+  <main>
+    <!-- This iframe shows proxied websites -->
+    <iframe id="proxyFrame" sandbox="allow-scripts allow-forms allow-same-origin allow-popups" aria-label="Proxied website display"></iframe>
+
+    <!-- Games content for games tab (hidden except when active) -->
+    <div id="gamesContent" tabindex="0" aria-label="Games list" hidden></div>
+  </main>
+
+  <script>
+    // Games list
+    const games = [
+      ["Roblox", "https://www.roblox.com", "https://cdn2.iconfinder.com/data/icons/social-icons-33/128/Roblox-512.png"],
+      ["Minecraft 1.5.2 (Eaglercraft)", "https://eaglercraft.org/1.5.2", "https://eaglercraft.org/favicon.ico"],
+      ["Minecraft 1.8.8 (Eaglercraft)", "https://eaglercraft.org/1.8.8", "https://eaglercraft.org/favicon.ico"],
+      ["Minecraft 1.12.2 (Eaglercraft)", "https://eaglercraft.org/1.12.2", "https://eaglercraft.org/favicon.ico"],
+      ["The Legend of Zelda: Ocarina of Time (N64)", "https://emulatorgames.net/nintendo64/legend-of-zelda-ocarina-of-time/", "https://emulatorgames.net/media/games/legend-of-zelda-ocarina-of-time.jpg"],
+      ["Among Us", "https://amongusplay.net", "https://upload.wikimedia.org/wikipedia/en/9/9a/Among_Us_Logo.svg"],
+      ["Slither.io", "https://slither.io", "https://slither.io/images/apple-touch-icon.png"],
+      ["Agar.io", "https://agar.io", "https://agar.io/favicon.ico"],
+      ["Krunker.io", "https://krunker.io", "https://krunker.io/favicon.ico"],
+      ["Shell Shockers", "https://shellshock.io", "https://shellshock.io/favicon.ico"],
+      ["2048", "https://play2048.co", "https://play2048.co/favicon.ico"],
+      ["Tetris", "https://tetris.com/play-tetris", "https://tetris.com/favicon.ico"],
+      ["Pac-Man", "https://www.google.com/logos/2010/pacman10-i.html", "https://www.google.com/logos/2010/pacman10-i.html"],
+      ["Super Mario Bros (NES)", "https://emulatorgames.net/nes/super-mario-bros/", "https://emulatorgames.net/media/games/super-mario-bros.jpg"],
+      ["Sonic the Hedgehog", "https://emulatorgames.net/genesis/sonic-the-hedgehog/", "https://emulatorgames.net/media/games/sonic-the-hedgehog.jpg"],
+      ["Street Fighter II", "https://emulatorgames.net/snes/street-fighter-ii-the-world-warriors/", "https://emulatorgames.net/media/games/street-fighter-ii-the-world-warriors.jpg"],
+      ["Pokemon Red", "https://emulatorgames.net/gameboy/pokemon-red-version/", "https://emulatorgames.net/media/games/pokemon-red-version.jpg"],
+      ["Mario Kart 64", "https://emulatorgames.net/nintendo64/mario-kart-64/", "https://emulatorgames.net/media/games/mario-kart-64.jpg"],
+      ["Counter-Strike 1.6", "https://www.cs-online.club", "https://www.cs-online.club/favicon.ico"],
+      ["Runescape Classic", "https://classic.runescape.com", "https://www.runescape.com/favicon.ico"],
+      ["Cookie Clicker", "https://orteil.dashnet.org/cookieclicker/", "https://orteil.dashnet.org/cookieclicker/favicon.ico"],
+      ["Happy Wheels", "https://totaljerkface.com/happy_wheels.tjf", "https://totaljerkface.com/favicon.ico"],
+      ["Town of Salem", "https://www.blankmediagames.com/TownOfSalem/", "https://www.blankmediagames.com/favicon.ico"],
+      ["Terraria Online", "https://terraria.org/", "https://terraria.org/favicon.ico"],
+      ["Run 3", "https://run3.io", "https://run3.io/favicon.ico"],
+      ["Bonk.io", "https://bonk.io", "https://bonk.io/favicon.ico"]
+    ];
+
+    const tabsContainer = document.getElementById("tabsContainer");
+    const proxyFrame = document.getElementById("proxyFrame");
+    const gamesContent = document.getElementById("gamesContent");
+    const newTabBtn = document.getElementById("newTabBtn");
+
+    // Tabs array: each tab is {id, title, url, isGamesTab}
+    let tabs = [];
+    let activeTabId = null;
+
+    // Utility: Create unique id for tabs
+    function makeTabId() {
+      return 'tab-' + Date.now() + '-' + Math.floor(Math.random()*1000);
+    }
+
+    // Create tab DOM element
+    function createTabElement(tab) {
+      const tabEl = document.createElement("div");
+      tabEl.className = "tab" + (tab.id === activeTabId ? " active" : "");
+      tabEl.id = tab.id;
+      tabEl.setAttribute("role", "tab");
+      tabEl.tabIndex = 0;
+      tabEl.setAttribute("aria-selected", tab.id === activeTabId ? "true" : "false");
+      tabEl.textContent = tab.title;
+
+      // Close button except for games tab
+      if (!tab.isGamesTab) {
+        const closeBtn = document.createElement("button");
+        closeBtn.className = "close-btn";
+        closeBtn.setAttribute("aria-label", "Close tab");
+        closeBtn.innerHTML = "&times;";
+        closeBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          closeTab(tab.id);
+        });
+        tabEl.appendChild(closeBtn);
+      }
+
+      tabEl.addEventListener("click", () => {
+        setActiveTab(tab.id);
+      });
+      tabEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          setActiveTab(tab.id);
+        }
+      });
+
+      return tabEl;
+    }
+
+    // Render tabs UI
+    function renderTabs() {
+      // Remove all except newTabBtn
+      [...tabsContainer.children].forEach(child => {
+        if (child !== newTabBtn) child.remove();
+      });
+
+      tabs.forEach(tab => {
+        const tabEl = createTabElement(tab);
+        tabsContainer.insertBefore(tabEl, newTabBtn);
+      });
+    }
+
+    // Set active tab
+    function setActiveTab(id) {
+      if (activeTabId === id) return;
+      activeTabId = id;
+      renderTabs();
+      const tab = tabs.find(t => t.id === id);
+      if (!tab) return;
+
+      if (tab.isGamesTab) {
+        // Show games content, hide iframe
+        proxyFrame.hidden = true;
+        gamesContent.hidden = false;
+        gamesContent.focus();
+      } else {
+        // Show iframe, hide games content
+        gamesContent.hidden = true;
+        proxyFrame.hidden = false;
+        loadProxiedURL(tab.url);
+      }
+    }
+
+    // Close tab by id
+    function closeTab(id) {
+      const idx = tabs.findIndex(t => t.id === id);
+      if (idx === -1) return;
+      const closingActive = (tabs[idx].id === activeTabId);
+      tabs.splice(idx, 1);
+      if (tabs.length === 0) {
+        // No tabs left: open games tab
+        openGamesTab();
+      } else if (closingActive) {
+        // Activate next tab or previous
+        let newIndex = idx;
+        if (newIndex >= tabs.length) newIndex = tabs.length -1;
+        setActiveTab(tabs[newIndex].id);
+      } else {
+        renderTabs();
+      }
+    }
+
+    // Open a new tab with given title, url, and isGamesTab flag
+    function openTab(title, url = "", isGamesTab = false) {
+      // Avoid duplicate games tab
+      if (isGamesTab && tabs.some(t => t.isGamesTab)) {
+        setActiveTab(tabs.find(t => t.isGamesTab).id);
+        return;
+      }
+      const newTab = {
+        id: makeTabId(),
+        title,
+        url,
+        isGamesTab
+      };
+      tabs.push(newTab);
+      setActiveTab(newTab.id);
+    }
+
+    // Load proxied URL content into iframe using public CORS proxy
+    function loadProxiedURL(url) {
+      // Compose proxy fetch URL (allorigins.win)
+      const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(url);
+
+      fetch(proxyUrl)
+        .then(res => {
+          if (!res.ok) throw new Error("Network error");
+          return res.json();
+        })
+        .then(data => {
+          const blob = new Blob([data.contents], {type: "text/html"});
+          const blobUrl = URL.createObjectURL(blob);
+          proxyFrame.src = blobUrl;
+          proxyFrame.focus();
+        })
+        .catch(() => {
+          alert("Could not load proxied page. It might be blocked or unsupported.");
+        });
+    }
+
+    // Render the games grid inside gamesContent div
+    function renderGamesGrid() {
+      gamesContent.innerHTML = "";
+      const grid = document.createElement("div");
+      grid.id = "gamesGrid";
+      grid.setAttribute("role", "list");
+      grid.setAttribute("aria-label", "List of games");
+
+      games.forEach(([title, url, img]) => {
+        const gameDiv = document.createElement("div");
+        gameDiv.className = "game";
+        gameDiv.tabIndex = 0;
+        gameDiv.setAttribute("role", "link");
+        gameDiv.setAttribute("aria-label", `Play ${title}`);
+
+        gameDiv.addEventListener("click", () => {
+          openGameInCurrentTab(url, title);
+        });
+        gameDiv.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            openGameInCurrentTab(url, title);
+          }
+        });
+
+        const imgEl = document.createElement("img");
+        imgEl.src = img;
+        imgEl.alt = title + " thumbnail";
+        gameDiv.appendChild(imgEl);
+
+        const span = document.createElement("span");
+        span.className = "game-title";
+        span.textContent = title;
+        gameDiv.appendChild(span);
+
+        grid.appendChild(gameDiv);
+      });
+
+      gamesContent.appendChild(grid);
+    }
+
+    // Open a game in the current tab, replacing iframe src and tab title
+    function openGameInCurrentTab(url, title) {
+      if (!activeTabId) return;
+
+      const tab = tabs.find(t => t.id === activeTabId);
+      if (!tab) return;
+
+      // If the current tab is the games tab, replace it with a new tab for the game
+      if (tab.isGamesTab) {
+        // Open a new tab for the game and switch to it
+        openTab(title, url, false);
+      } else {
+        // Just load the game URL and update tab title
+        tab.url = url;
+        tab.title = title;
+        renderTabs();
+        loadProxiedURL(url);
+      }
+    }
+
+    // Open the games tab (shows game list)
+    function openGamesTab() {
+      openTab("Games", "", true);
+    }
+
+    // Event: New Tab button
+    newTabBtn.addEventListener("click", () => {
+      openGamesTab();
+    });
+
+    // Initialization
+    function init() {
+      renderGamesGrid();
+      openGamesTab();
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
